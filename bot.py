@@ -1,11 +1,24 @@
 from flask import Flask, request
 import requests
+import json
+import os
 
 TOKEN = "8563508602:AAE8u7e1u9FvWxMb7nldj_pEi_ddSG7TJks"
 ADMIN_CHAT_ID = "-5175915462"
+MAP_FILE = "forwarded_map.json"
 
 app = Flask(__name__)
-forwarded_map = {}
+
+# Load mapping from file
+if os.path.exists(MAP_FILE):
+    with open(MAP_FILE, "r") as f:
+        forwarded_map = json.load(f)
+else:
+    forwarded_map = {}
+
+def save_map():
+    with open(MAP_FILE, "w") as f:
+        json.dump(forwarded_map, f)
 
 def send_message(chat_id, text):
     requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
@@ -15,21 +28,22 @@ def send_message(chat_id, text):
 def webhook():
     data = request.get_json()
     print("Incoming update:", data)
-    
+
     # Forward user messages
     if "message" in data and "text" in data["message"] and data["message"]["chat"]["id"] != int(ADMIN_CHAT_ID):
         user_id = data["message"]["chat"]["id"]
         text = data["message"]["text"]
         res = requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
                             data={"chat_id": ADMIN_CHAT_ID, "text": text}).json()
-        group_msg_id = res.get("result", {}).get("message_id")
+        group_msg_id = str(res.get("result", {}).get("message_id"))
         if group_msg_id:
             forwarded_map[group_msg_id] = user_id
+            save_map()  # Save mapping to file
 
     # Handle replies from admin group
     if "message" in data and "reply_to_message" in data["message"]:
         reply_text = data["message"]["text"]
-        group_reply_id = data["message"]["reply_to_message"]["message_id"]
+        group_reply_id = str(data["message"]["reply_to_message"]["message_id"])
         user_id = forwarded_map.get(group_reply_id)
         if user_id:
             send_message(user_id, reply_text)
