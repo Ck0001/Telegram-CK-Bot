@@ -4,7 +4,7 @@ import json
 import os
 
 TOKEN = "YOUR_BOT_TOKEN"
-ADMIN_CHAT_ID = "-5175915462"  # Make sure this is your group ID
+ADMIN_CHAT_ID = "-1003509091985"  # Make sure this is your group ID
 MAP_FILE = "forwarded_map.json"
 
 app = Flask(__name__)
